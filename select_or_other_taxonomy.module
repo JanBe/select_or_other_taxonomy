@@ -1,0 +1,209 @@
+<?php
+
+/**
+ * Select (or other) taxonomy module, for Drupal 7.
+ *
+ */
+
+/**
+ * Implements hook_field_widget_info
+ */
+ 
+function select_or_other_taxonomy_field_widget_info() {
+  $settings = array(
+    'available_options' => '',
+    'available_options_php' => '',
+    'markup_available_options_php' => t('&lt;none&gt;'),
+    'other' => t('Other'),
+    'other_unknown_defaults' => 'other',
+  );
+  return array(
+    'select_or_other' => array(
+      'label' => t('Select (or other) list'),
+      'field types' => array('taxonomy_term_reference'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+      'settings' => $settings,
+    ),
+    'select_or_other_buttons' => array(
+      'label' => t('Select (or other) check boxes/radio buttons'),
+      'field types' => array('taxonomy_term_reference'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+      'settings' => $settings,
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form
+ */
+
+function select_or_other_taxonomy_field_widget_form( &$form, &$form_state, $field,
+  $instance, $langcode, $items, $delta, $element) {
+  
+  $element = array(
+    '#type' => 'select_or_other',
+    '#title' => isset($instance['label']) ? $instance['label'] : NULL,
+    '#other' => 
+      isset($instance['widget']['settings']['other']) ? 
+      $instance['widget']['settings']['other'] : t('Other'),
+    '#default_value' => !empty($items[$delta]) ? $items[$delta] : NULL,
+    '#options' => select_or_other_taxonomy_get_options($field),
+    '#description' => isset($instance['description']) ? $instance['description'] : '',
+    '#multiple' => $field['cardinality'] == 1 ? FALSE : $field['cardinality'],
+    '#required' => $instance['required'],
+    '#other_delimiter' => FALSE,
+    '#other_unknown_defaults' => 
+      isset($instance['widget']['settings']['other_unknown_defaults']) ? 
+      $instance['widget']['settings']['other_unknown_defaults'] : 'other',
+    '#element_validate' => array('select_or_other_taxonomy_field_widget_validate'),
+    '#field_widget' => $instance['widget']['type'],
+  );
+  
+  // Set select types.
+  switch ($instance['widget']['type']) {
+    case 'select_or_other':
+      $element['#select_type'] = 'select';
+      break;
+    case 'select_or_other_buttons':
+      $element['#select_type'] = $field['cardinality'] == 1 ? 'radios' : 'checkboxes';
+      break;
+  }
+
+  // In situations where we handle our own multiples (checkboxes and multiple selects),
+  // set defaults differently.
+  if ($element['#multiple']) {
+    $element['#default_value'] = array();
+    foreach ($items as $delta => $item) {
+      $element['#default_value'][$delta] = $item['tid'];
+    }
+  }
+
+  return $element;
+}
+
+/** 
+ * Utility function to create the form options for a taxonomy item.
+ */
+
+function select_or_other_taxonomy_get_options($field) {
+  // get the vocabulary associated with this field (there's probably only one, but who knows...)
+  $vocabularies = array();
+  foreach ($field['settings']['allowed_values'] as $tree) {
+    if ( $vocabulary = taxonomy_vocabulary_machine_name_load($tree['vocabulary']) ) {
+      $vocabularies[] = $vocabulary->vid;
+    }
+  }
+  
+  // get the taxonomy term ids for our vocabulary (we'll just use the first one in the list)
+  // the new drupal 7 method for getting taxonomy terms is via entityfieldquery.
+  $query = new EntityFieldQuery;
+  $result = $query->entityCondition('entity_type', 'taxonomy_term')
+    ->propertyCondition('vid', $vocabularies[0])
+    ->execute();
+  
+  // load the taxonomy terms
+  $tids = array();
+  foreach ($result['taxonomy_term'] as $tid) {
+    $tids[] = $tid->tid;
+  }
+  $taxonomy_terms = taxonomy_term_load_multiple($tids);
+    
+  // create the options array
+  $options = array();
+  foreach ($taxonomy_terms as $term) {
+    $options[$term->tid] = $term->name;
+  }
+
+  return $options;
+}
+
+/**
+ * Validation function for these form elements.
+ *
+ * We register this function as the validation callback in the hook above.
+ * Does some error checking and sets the form value in the correct place in the form array.
+ *
+ */
+
+function select_or_other_taxonomy_field_widget_validate($element, &$form_state) {
+
+  $field_info = field_info_field($element['#field_name']);
+  $other_selected = FALSE;
+  $values = array();
+  
+  if (is_array($element['select']['#value'])) {
+    // This is a multiselect. assoc arrays
+    $value = $element['select']['#value'];
+
+    if (in_array('select_or_other', $value)) {
+      $other_selected = TRUE;
+      $value = $element['select']['#value'];
+      unset($value['select_or_other']);
+    }
+    
+    foreach ($value as $v) {
+      if ($v) {
+        $values[] = array('tid' => $v);
+      }
+    }
+    
+    if ($other_selected) {
+      if ($other_value = select_or_other_taxonomy_get_other_value($element, $field_info) ) {
+        $values[] = $other_value;
+      }
+    } 
+  }
+  else {
+    // This is a single select
+    
+    if ($element['select']['#value'] == 'select_or_other') {
+      $values[] = select_or_other_taxonomy_get_other_value($element, $field_info);
+    } else {
+      $values[] = array( 'tid' => $element['select']['#value'] );
+    }
+  }
+
+  if ($element['#multiple'] >= 2 && count($values) > $element['#multiple']) {
+    form_error($element['select'], t('%name: this field cannot hold more than @count values.',
+      array('%name' => t($element['select']['#title']), '@count' => $element['#multiple'])) );
+  }
+
+  $value = $values;
+  form_set_value($element, $value, $form_state);
+}
+
+/**
+ * Reformats the form['other'] field in the array format needed to create a new term. Does error checking.
+ */
+
+function select_or_other_taxonomy_get_other_value($element, $form_info) {
+  $value = $element['other']['#value'];
+  // First do some error handling
+  if (!$value) {
+    form_error($element['other'], t('%name: @title is required',
+      array('%name' => t($element['select']['#title']), '@title' => $element['#other'])));
+    return FALSE;
+  }
+  elseif ( drupal_strlen($value) > 255 ) {
+    form_error($element['other'], t('%name: @title may not be longer than 255 characters.',
+      array('%name' => t($element['select']['#title']), '@title' => $element['#other'])));
+    return FALSE;
+  }
+  else {
+    $vocabulary_name = $form_info['settings']['allowed_values'][0]['vocabulary'];
+    $vid = taxonomy_vocabulary_machine_name_load($vocabulary_name)->vid;
+  
+    return array(
+      'tid' => 'autocreate',
+      'vid' => $vid,
+      'name' => $element['other']['#value'],
+      'vocabulary_machine_name' => $vocabulary_name
+    );
+  } 
+}

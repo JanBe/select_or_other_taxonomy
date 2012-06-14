@@ -1,0 +1,5 @@
+name = Select or Other Taxonomy
+description = "Uses the Select (or other) module to edit taxonomy terms. Updates D6 Taxonomy Other module."
+core = 7.x
+dependencies[] = select_or_other
+version = 7.x-0.9-dev
