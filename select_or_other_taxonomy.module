@@ -8,7 +8,7 @@
 /**
  * Implements hook_field_widget_info
  */
- 
+
 function select_or_other_taxonomy_field_widget_info() {
   $settings = array(
     'available_options' => '',
@@ -45,12 +45,12 @@ function select_or_other_taxonomy_field_widget_info() {
 
 function select_or_other_taxonomy_field_widget_form( &$form, &$form_state, $field,
   $instance, $langcode, $items, $delta, $element) {
-  
+
   $element = array(
     '#type' => 'select_or_other',
     '#title' => isset($instance['label']) ? $instance['label'] : NULL,
-    '#other' => 
-      isset($instance['widget']['settings']['other']) ? 
+    '#other' =>
+      isset($instance['widget']['settings']['other']) ?
       $instance['widget']['settings']['other'] : t('Other'),
     '#default_value' => !empty($items[$delta]) ? $items[$delta] : NULL,
     '#options' => select_or_other_taxonomy_get_options($field),
@@ -58,13 +58,13 @@ function select_or_other_taxonomy_field_widget_form( &$form, &$form_state, $fiel
     '#multiple' => $field['cardinality'] == 1 ? FALSE : $field['cardinality'],
     '#required' => $instance['required'],
     '#other_delimiter' => FALSE,
-    '#other_unknown_defaults' => 
-      isset($instance['widget']['settings']['other_unknown_defaults']) ? 
+    '#other_unknown_defaults' =>
+      isset($instance['widget']['settings']['other_unknown_defaults']) ?
       $instance['widget']['settings']['other_unknown_defaults'] : 'other',
     '#element_validate' => array('select_or_other_taxonomy_field_widget_validate'),
     '#field_widget' => $instance['widget']['type'],
   );
-  
+
   // Set select types.
   switch ($instance['widget']['type']) {
     case 'select_or_other':
@@ -87,7 +87,7 @@ function select_or_other_taxonomy_field_widget_form( &$form, &$form_state, $fiel
   return $element;
 }
 
-/** 
+/**
  * Utility function to create the form options for a taxonomy item.
  */
 
@@ -99,21 +99,21 @@ function select_or_other_taxonomy_get_options($field) {
       $vocabularies[] = $vocabulary->vid;
     }
   }
-  
+
   // get the taxonomy term ids for our vocabulary (we'll just use the first one in the list)
   // the new drupal 7 method for getting taxonomy terms is via entityfieldquery.
   $query = new EntityFieldQuery;
   $result = $query->entityCondition('entity_type', 'taxonomy_term')
     ->propertyCondition('vid', $vocabularies[0])
     ->execute();
-  
+
   // load the taxonomy terms
   $tids = array();
   foreach ($result['taxonomy_term'] as $tid) {
     $tids[] = $tid->tid;
   }
   $taxonomy_terms = taxonomy_term_load_multiple($tids);
-    
+
   // create the options array
   $options = array();
   foreach ($taxonomy_terms as $term) {
@@ -136,7 +136,7 @@ function select_or_other_taxonomy_field_widget_validate($element, &$form_state) 
   $field_info = field_info_field($element['#field_name']);
   $other_selected = FALSE;
   $values = array();
-  
+
   if (is_array($element['select']['#value'])) {
     // This is a multiselect. assoc arrays
     $value = $element['select']['#value'];
@@ -146,22 +146,22 @@ function select_or_other_taxonomy_field_widget_validate($element, &$form_state) 
       $value = $element['select']['#value'];
       unset($value['select_or_other']);
     }
-    
+
     foreach ($value as $v) {
       if ($v) {
         $values[] = array('tid' => $v);
       }
     }
-    
+
     if ($other_selected) {
       if ($other_value = select_or_other_taxonomy_get_other_value($element, $field_info) ) {
         $values[] = $other_value;
       }
-    } 
+    }
   }
   else {
     // This is a single select
-    
+
     if ($element['select']['#value'] == 'select_or_other') {
       $values[] = select_or_other_taxonomy_get_other_value($element, $field_info);
     } else {
@@ -198,12 +198,12 @@ function select_or_other_taxonomy_get_other_value($element, $form_info) {
   else {
     $vocabulary_name = $form_info['settings']['allowed_values'][0]['vocabulary'];
     $vid = taxonomy_vocabulary_machine_name_load($vocabulary_name)->vid;
-  
+
     return array(
       'tid' => 'autocreate',
       'vid' => $vid,
       'name' => $element['other']['#value'],
       'vocabulary_machine_name' => $vocabulary_name
     );
-  } 
+  }
 }
