@@ -128,8 +128,15 @@ function select_or_other_taxonomy_get_options($field, $widget_type) {
 
   // create the options array
   $options = array();
-  foreach ($taxonomy_terms as $term) {
-    $options[$term->tid] = $term->name;
+
+  if ($widget_type == 'select_or_other_hierarchy') {
+    foreach ($taxonomy_terms as $term) {
+      $options[$term->tid] = str_repeat('-', $term->depth) . ' ' . $term->name;
+    }
+  } else {
+    foreach ($taxonomy_terms as $term) {
+      $options[$term->tid] = $term->name;
+    }
   }
 
   return $options;
