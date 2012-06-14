@@ -124,7 +124,7 @@ function select_or_other_taxonomy_get_options($field) {
   foreach ($result['taxonomy_term'] as $tid) {
     $tids[] = $tid->tid;
   }
-  $taxonomy_terms = taxonomy_term_load_multiple($tids);
+  $taxonomy_terms = taxonomy_get_tree($vocabulary->vid);
 
   // create the options array
   $options = array();
