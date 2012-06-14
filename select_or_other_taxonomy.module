@@ -221,7 +221,7 @@ function select_or_other_taxonomy_get_other_value($element, $form_info) {
     return array(
       'tid' => 'autocreate',
       'vid' => $vid,
-      'name' => $element['other']['#value'],
+      'name' => t('Other') . ': ' . $element['other']['#value'],
       'vocabulary_machine_name' => $vocabulary_name
     );
   }
