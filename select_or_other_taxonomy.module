@@ -36,6 +36,15 @@ function select_or_other_taxonomy_field_widget_info() {
       ),
       'settings' => $settings,
     ),
+    'select_or_other_hierarchy' => array(
+      'label' => t('Select (or other) hierarchical list'),
+      'field types' => array('taxonomy_term_reference'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+      'settings' => $settings,
+    ),
   );
 }
 
