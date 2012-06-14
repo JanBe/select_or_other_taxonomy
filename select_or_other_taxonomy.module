@@ -62,7 +62,7 @@ function select_or_other_taxonomy_field_widget_form( &$form, &$form_state, $fiel
       isset($instance['widget']['settings']['other']) ?
       $instance['widget']['settings']['other'] : t('Other'),
     '#default_value' => !empty($items[$delta]) ? $items[$delta] : NULL,
-    '#options' => select_or_other_taxonomy_get_options($field, $instance['widget']['type']),
+    '#options' => select_or_other_taxonomy_get_options($field, $instance['widget']['type'], $items),
     '#description' => isset($instance['description']) ? $instance['description'] : '',
     '#multiple' => $field['cardinality'] == 1 ? FALSE : $field['cardinality'],
     '#required' => $instance['required'],
@@ -103,7 +103,7 @@ function select_or_other_taxonomy_field_widget_form( &$form, &$form_state, $fiel
  * Utility function to create the form options for a taxonomy item.
  */
 
-function select_or_other_taxonomy_get_options($field, $widget_type) {
+function select_or_other_taxonomy_get_options($field, $widget_type, $items) {
   // get the vocabulary associated with this field (there's probably only one, but who knows...)
   $vocabularies = array();
   foreach ($field['settings']['allowed_values'] as $tree) {
