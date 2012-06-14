@@ -13,6 +13,17 @@ question.
 
 This module requires the Select or Other module.
 
+--------------------------------------------------------
+Preface
+-------------------------------------------------------
+
+This specific version of the module was modified by Jan Bechstein to
+allow appropriate display of taxonomies with hierarchy. It can be
+found at 
+https://github.com/JanBe/select_or_other_taxonomy
+
+Credit for the original code still goes to Eli Thorkelson.
+
 -------------------------------------------------------
 Context
 -------------------------------------------------------
@@ -49,9 +60,10 @@ Use
 Install the module, along with Select or Other, like any other Drupal
 module. Once the module is installed, if you edit a content type (Admin
 Menu > Structure > Content Types), and add or edit a new Taxonomy Term
-Reference field, this module should make available two new widget types:
-"Select (or other) list", and "Select (or other) check boxes/radio
-buttons". Either of these will show users a widget that shows the
+Reference field, this module should make available three new widget types:
+"Select (or other) list","Select (or other) check boxes/radio
+buttons" and "Select (or other) hierarchical list".
+Either of these will show users a widget that shows the
 existing set of taxonomy terms as selectable options, while also
 allowing them to add new taxonomy terms as needed.
 
