@@ -82,6 +82,9 @@ function select_or_other_taxonomy_field_widget_form( &$form, &$form_state, $fiel
     case 'select_or_other_buttons':
       $element['#select_type'] = $field['cardinality'] == 1 ? 'radios' : 'checkboxes';
       break;
+    case 'select_or_other_hierarchy':
+      $element['#select_type'] = 'select';
+      break;
   }
 
   // In situations where we handle our own multiples (checkboxes and multiple selects),
